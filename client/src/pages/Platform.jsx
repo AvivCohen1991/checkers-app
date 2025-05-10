@@ -3,21 +3,70 @@ import socket from "../socket";
 
 function Platform() {
   const token = localStorage.getItem("token");
-  const username = token
-    ? "RegisteredUser" // TODO: decode from token
-    : `guest-${Math.floor(Math.random() * 10000)}`;
+  let username;
+
+  if (token) {
+    username = "RegisteredUser"; // TODO: decode token for real username
+  } else {
+    username = localStorage.getItem("guest");
+    if (!username) {
+      username = `guest-${Math.floor(Math.random() * 10000)}`;
+      localStorage.setItem("guest", username);
+    }
+  }
 
   const [openGames, setOpenGames] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const [color, setColor] = useState("white");
-  const [bet, setBet] = useState(1);
+  const [bet, setBet] = useState(0);
 
   useEffect(() => {
-    socket.on("game-list-update", (game) => {
-      setOpenGames((prev) => [...prev, game]);
+    socket.on("initial-data", ({ games, users }) => {
+      setOpenGames(games);
+      setOnlineUsers(users);
     });
 
-    return () => socket.off("game-list-update");
+    socket.on("game-list-update", (updatedGame) => {
+      setOpenGames((prev) =>
+        prev.some((g) => g.id === updatedGame.id)
+          ? prev.map((g) => (g.id === updatedGame.id ? updatedGame : g))
+          : [...prev, updatedGame]
+      );
+    });
+
+    socket.on("game-removed", (gameId) => {
+      setOpenGames((prev) => prev.filter((g) => g.id !== gameId));
+    });
+
+    socket.on("user-list-update", (users) => {
+      setOnlineUsers(users);
+    });
+
+    socket.on("error-message", (msg) => {
+      alert(msg);
+    });
+
+    return () => {
+      socket.off("initial-data");
+      socket.off("game-list-update");
+      socket.off("game-removed");
+      socket.off("user-list-update");
+      socket.off("error-message");
+    };
   }, []);
+
+  useEffect(() => {
+    socket.on("start-game", (game) => {
+      if ([game.whitePlayer, game.blackPlayer].includes(username)) {
+        const myColor = game.whitePlayer === username ? "white" : "black";
+        window.open(`/game/${game.id}?color=${myColor}`, "_blank");
+      }
+    });
+
+    return () => {
+      socket.off("start-game");
+    };
+  }, [username]);
 
   const handleOpenGame = (e) => {
     e.preventDefault();
@@ -38,15 +87,55 @@ function Platform() {
           {openGames.length === 0 ? (
             <li className="text-gray-500 italic">No games yet</li>
           ) : (
-            openGames.map((game, i) => (
-              <li key={i} className="border-b py-1">
-                🎯 {game.player} ({game.color}) — 💰 {game.bet} coins
+            openGames.map((game) => (
+              <li
+                key={game.id}
+                className="border-b py-2 flex items-center justify-between"
+              >
+                <span className="text-sm">💰 {game.bet} coins</span>
+
+                <div className="flex gap-2">
+                  {/* White button */}
+                  <button
+                    disabled={!!game.whitePlayer}
+                    onClick={() =>
+                      socket.emit("join-game", {
+                        gameId: game.id,
+                        color: "white",
+                      })
+                    }
+                    className={`px-3 py-1 rounded text-white ${
+                      game.whitePlayer
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-500 hover:bg-blue-600"
+                    }`}
+                  >
+                    {game.whitePlayer || "Join White"}
+                  </button>
+
+                  {/* Black button */}
+                  <button
+                    disabled={!!game.blackPlayer}
+                    onClick={() =>
+                      socket.emit("join-game", {
+                        gameId: game.id,
+                        color: "black",
+                      })
+                    }
+                    className={`px-3 py-1 rounded text-white ${
+                      game.blackPlayer
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-black hover:bg-gray-800"
+                    }`}
+                  >
+                    {game.blackPlayer || "Join Black"}
+                  </button>
+                </div>
               </li>
             ))
           )}
         </ul>
       </div>
-
       {/* ➕ Open New Game */}
       <div className="col-span-5 border p-4">
         <h2 className="text-xl font-semibold mb-2">Create New Game</h2>
@@ -67,7 +156,7 @@ function Platform() {
             value={bet}
             onChange={(e) => setBet(parseInt(e.target.value))}
           >
-            {[1, 5, 10, 50, 100, 500, 1000].map((amt) => (
+            {[0, 1, 5, 10, 50, 100, 500, 1000].map((amt) => (
               <option key={amt} value={amt}>
                 {amt} coins
               </option>
@@ -79,15 +168,21 @@ function Platform() {
           </button>
         </form>
       </div>
-
       {/* 👥 Connected Users */}
       <div className="col-span-4 border p-4">
         <h2 className="text-xl font-semibold mb-2">Online Users</h2>
         <ul>
-          <li className="text-gray-500 italic">Nobody online</li>
+          {onlineUsers.length === 0 ? (
+            <li className="text-gray-500 italic">Nobody online</li>
+          ) : (
+            onlineUsers.map((user, index) => (
+              <li key={index} className="text-sm">
+                {user.username} — {user.coins} coins
+              </li>
+            ))
+          )}
         </ul>
       </div>
-
       {/* 💬 Global Chat */}
       <div className="col-span-8 border p-4">
         <h2 className="text-xl font-semibold mb-2">Global Chat</h2>
@@ -103,7 +198,6 @@ function Platform() {
           <button className="bg-blue-500 text-white px-4 py-2">Send</button>
         </form>
       </div>
-
       {/* 🔐 Auth Buttons */}
       {!token && (
         <div className="col-span-12 text-center mt-4">
@@ -115,6 +209,27 @@ function Platform() {
           </a>
         </div>
       )}
+      User Public Data
+      {/* {userData && (
+        <div className="col-span-12 border p-4 bg-gray-50">
+          <h2 className="text-xl font-semibold mb-2">My Profile</h2>
+          <p>
+            <strong>Username:</strong> {userData.username}
+          </p>
+          <p>
+            <strong>Games Played:</strong> {userData.gamesPlayed}
+          </p>
+          <p>
+            <strong>Wins:</strong> {userData.wins}
+          </p>
+          <p>
+            <strong>Losses:</strong> {userData.losses}
+          </p>
+          <p>
+            <strong>Total Coins:</strong> {userData.coins}
+          </p>
+        </div>
+      )} */}
     </div>
   );
 }
