@@ -1,0 +1,52 @@
+# 🖥️ סקריפט התקנה לסביבה מקומית מלאה (Linux/Mac)
+
+## 📦 כלים שיותקנו:
+# - Node.js + npm
+# - Git
+# - PostgreSQL (רשות)
+# - Redis (רשות)
+
+## 🔧 שלב 1: התקנת Node.js + npm
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+## 🔧 שלב 2: התקנת Git
+sudo apt-get update
+sudo apt-get install -y git
+
+git --version
+node -v
+npm -v
+
+## 🔧 שלב 3 (רשות): התקנת PostgreSQL
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib
+
+# הפעלת השירות וכניסה למסוף:
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# יצירת משתמש בסיסי:
+sudo -u postgres createuser --interactive
+sudo -u postgres createdb checkers
+
+## 🔧 שלב 4 (רשות): התקנת Redis
+sudo apt install -y redis-server
+sudo systemctl enable redis-server.service
+
+# בדיקת Redis:
+redis-cli ping
+# => PONG
+
+---
+
+# 🚀 עכשיו אפשר להתחיל בבניית הפרויקט:
+# 1. client - React (ראה מדריך קודם)
+# 2. server - Express + Socket.IO
+# 3. database/init.sql
+
+# 📁 מבנה התיקיות:
+# - checkers-app/
+#   ├── client/         (React - Vite)
+#   ├── server/         (Node.js + Express + Socket.IO)
+#   └── database/       (init.sql)
