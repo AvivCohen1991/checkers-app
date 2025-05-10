@@ -1,34 +1,20 @@
-import { useEffect, useState } from "react";
-import io from "socket.io-client";
-
-const socket = io("http://localhost:3000");
+// ✅ FILE: client/src/App.jsx
+import { Routes, Route, Navigate } from "react-router-dom";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp.jsx";
+import Platform from "./pages/Platform";
+import Game from "./pages/Game";
 
 function App() {
-  const [message, setMessage] = useState("");
-  const [log, setLog] = useState([]);
-
-  useEffect(() => {
-    socket.on("message", (data) => {
-      setLog((prev) => [...prev, data]);
-    });
-  }, []);
-
-  const sendMessage = () => {
-    socket.emit("message", message);
-    setMessage("");
-  };
+  const isAuthenticated = localStorage.getItem("token"); // basic auth simulation
 
   return (
-    <div>
-      <h1>Checkers Game - דמו</h1>
-      <input value={message} onChange={(e) => setMessage(e.target.value)} />
-      <button onClick={sendMessage}>Send</button>
-      <ul>
-        {log.map((msg, i) => (
-          <li key={i}>{msg}</li>
-        ))}
-      </ul>
-    </div>
+    <Routes>
+      <Route path="/" element={<Platform />} />
+      <Route path="/signin" element={<SignIn />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/game/:id" element={<Game />} />
+    </Routes>
   );
 }
 

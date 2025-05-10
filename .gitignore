@@ -1,12 +1,23 @@
-# dependencies
+# node.js dependencies
 node_modules/
+
+# environment variables
+.env
 
 # logs
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# env
-.env
-
-# build
+# build output
 dist/
+build/
 
+# macOS / system files
+.DS_Store
+
+# VSCode settings (optional)
+.vscode/
+
+# lock files (optional, if not using them consistently)
+package-lock.json

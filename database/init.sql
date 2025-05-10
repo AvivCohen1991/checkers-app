@@ -1,14 +1,11 @@
-CREATE TABLE users (
+-- ✅ FILE: database/init.sql
+CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
-  username TEXT NOT NULL,
-  balance INTEGER DEFAULT 1000
-);
-
-CREATE TABLE games (
-  id SERIAL PRIMARY KEY,
-  player1_id INTEGER,
-  player2_id INTEGER,
-  status TEXT,
-  winner_id INTEGER,
+  email TEXT NOT NULL UNIQUE,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  coins INTEGER DEFAULT 5,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- You can add more tables here later (e.g., games, messages)
