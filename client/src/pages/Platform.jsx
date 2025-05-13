@@ -55,19 +55,6 @@ function Platform() {
     };
   }, []);
 
-  useEffect(() => {
-    socket.on("start-game", (game) => {
-      if ([game.whitePlayer, game.blackPlayer].includes(username)) {
-        const myColor = game.whitePlayer === username ? "white" : "black";
-        window.open(`/game/${game.id}?color=${myColor}`, "_blank");
-      }
-    });
-
-    return () => {
-      socket.off("start-game");
-    };
-  }, [username]);
-
   const handleOpenGame = (e) => {
     e.preventDefault();
     const newGame = {
@@ -98,12 +85,19 @@ function Platform() {
                   {/* White button */}
                   <button
                     disabled={!!game.whitePlayer}
-                    onClick={() =>
+                    onClick={() => {
                       socket.emit("join-game", {
                         gameId: game.id,
                         color: "white",
-                      })
-                    }
+                      });
+
+                      // Open new window only when user initiates the join
+                      window.open(
+                        `/game/${game.id}?color=white`,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
                     className={`px-3 py-1 rounded text-white ${
                       game.whitePlayer
                         ? "bg-gray-400 cursor-not-allowed"
@@ -116,12 +110,18 @@ function Platform() {
                   {/* Black button */}
                   <button
                     disabled={!!game.blackPlayer}
-                    onClick={() =>
+                    onClick={() => {
                       socket.emit("join-game", {
                         gameId: game.id,
                         color: "black",
-                      })
-                    }
+                      });
+
+                      window.open(
+                        `/game/${game.id}?color=black`,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
                     className={`px-3 py-1 rounded text-white ${
                       game.blackPlayer
                         ? "bg-gray-400 cursor-not-allowed"
